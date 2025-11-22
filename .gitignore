@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+.env/
+venv/
+.env.bak/
+.venv/
+
+# OS / editor junk
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
