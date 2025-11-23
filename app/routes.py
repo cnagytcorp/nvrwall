@@ -61,6 +61,7 @@ def admin_login():
             h1 { font-size:20px; margin-top:0; margin-bottom:12px; }
             label { display:block; font-size:13px; margin-bottom:4px; }
             input[type=password] { width:100%; padding:8px; border-radius:6px; border:1px solid #374151; background:#0b1120; color:#e5e7eb; }
+            input[type=text] { width:100%; padding:8px; border-radius:6px; border:1px solid #374151; background:#0b1120; color:#e5e7eb; }
             button { margin-top:12px; width:100%; padding:8px; border:none; border-radius:6px; background:#2563eb; color:white; font-weight:500; cursor:pointer; }
             button:hover { background:#1d4ed8; }
             .error { color:#f87171; font-size:13px; margin-top:8px; }
@@ -72,7 +73,7 @@ def admin_login():
             <form method="post">
                 <label for="user">Admin username</label>
                 <input id="user" name="user" type="text" required />
-                <label for="password">Admin password</label>
+                <label for="password">Password</label>
                 <input id="password" name="password" type="password" required />
                 {% if error %}
                     <div class="error">{{ error }}</div>
