@@ -250,18 +250,23 @@ def stream():
 
 @bp.get("/hls/<path:filename>")
 def serve_hls(filename):
-    token = request.args.get("token", "")
-    token_id = is_token_valid(token)
-    if token_id is None:
-        abort(401, "Invalid or revoked token")
+    hls_dir = "/home/enjoy/nvr/hls"  # where ffmpeg writes ch1.m3u8 and .ts segments
 
-    log_access(
-        token_id=token_id,
-        path=f"/hls/{filename}",
-        ip=request.remote_addr,
-        user_agent=request.headers.get("User-Agent", ""),
-    )
+    # If this is a playlist, enforce token
+    if filename.endswith(".m3u8"):
+        token = request.args.get("token", "")
+        token_id = is_token_valid(token)
+        if token_id is None:
+            abort(401, "Invalid or revoked token")
 
-    # IMPORTANT: match ffmpeg output folder
-    hls_dir = "/home/enjoy/nvr/hls"
+        log_access(
+            token_id=token_id,
+            path=f"/hls/{filename}",
+            ip=request.remote_addr,
+            user_agent=request.headers.get("User-Agent", ""),
+        )
+
+        return send_from_directory(hls_dir, filename)
+
+    # If this is a .ts segment, DO NOT require token (browser doesn't send it)
     return send_from_directory(hls_dir, filename)
