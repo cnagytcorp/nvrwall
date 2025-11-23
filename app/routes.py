@@ -63,27 +63,38 @@ def wall():
         <title>NVR Wall - CH1</title>
         <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
         <style>
-            html, body {
+            body, html {
                 margin: 0;
                 padding: 0;
+                width: 100%;
                 height: 100%;
                 background: #000;
                 overflow: hidden;
             }
-            video {
+            /* 16:9 container */
+            .wrapper {
                 position: absolute;
                 top: 50%;
                 left: 50%;
-                transform: translate(-50%, -50%);
-                max-width: 100vw;
+                width: 100vw;
+                height: calc(100vw * 9 / 16);
                 max-height: 100vh;
-                object-fit: contain;   /* preserve real aspect */
+                max-width: calc(100vh * 16 / 9);
+                transform: translate(-50%, -50%);
                 background: #000;
+            }
+            /* actual camera video inside */
+            video {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
             }
         </style>
     </head>
     <body>
-        <video id="cam1" autoplay muted></video>
+        <div class="wrapper">
+            <video id="cam1" autoplay muted></video>
+        </div>
         <script>
             const token = "{{ token }}";
             const src = "/hls/ch1.m3u8?token=" + encodeURIComponent(token);
