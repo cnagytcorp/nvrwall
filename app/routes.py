@@ -6,10 +6,6 @@ from .tokens import (
     create_token, revoke_token,
     is_token_valid, log_access
 )
-# from .nvr import get_grid_frame
-# import os
-# import cv2
-# import time
 
 bp = Blueprint("routes", __name__)
 
@@ -115,42 +111,8 @@ def wall():
     """
     return render_template_string(html, token=token)
 
-# # --- MJPEG STREAM ---
-# @bp.get("/stream")
-# def stream():
-#     token = request.args.get("token", "")
-#     token_id = is_token_valid(token)
-#     if token_id is None:
-#         abort(401, "Invalid or revoked token")
 
-#     log_access(
-#         token_id=token_id,
-#         path="/stream",
-#         ip=request.remote_addr,
-#         user_agent=request.headers.get("User-Agent", ""),
-#     )
-
-#     def generate():
-#         while True:
-#             frame = get_grid_frame()
-#             encode_params = [int(cv2.IMWRITE_JPEG_QUALITY), 80]  # 0–100, default ~95
-#             ret, jpeg = cv2.imencode(".jpg", frame, encode_params)
-
-#             if not ret:
-#                 continue
-
-#             data = jpeg.tobytes()
-#             yield (
-#                 b"--frame\r\n"
-#                 b"Content-Type: image/jpeg\r\n\r\n" + data + b"\r\n"
-#             )
-#             time.sleep(0.07)  # ~14 fps
-
-#     return Response(
-#         generate(),
-#         mimetype="multipart/x-mixed-replace; boundary=frame",
-#     )
-
+# --- SERVE HLS FILES ---
 @bp.get("/hls/<path:filename>")
 def serve_hls(filename):
     hls_dir = "/home/enjoy/nvr/hls"  # where ffmpeg writes ch1.m3u8 and .ts segments
