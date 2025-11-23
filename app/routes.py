@@ -20,6 +20,12 @@ def index():
     return "NVR Wall backend (routes + tokens + NVR active)", 200
 
 
+# --- watchdog ---
+@bp.get("/health")
+def health():
+    return jsonify(status="ok"), 200
+
+
 # --- TOKEN: CREATE ---
 @bp.post("/tokens")
 def api_create_token():
