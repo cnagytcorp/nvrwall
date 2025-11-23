@@ -1,6 +1,6 @@
 from flask import (
     Blueprint, request, abort, jsonify,
-    render_template_string, Response
+    render_template_string, Response, send_from_directory
 )
 from .tokens import (
     create_token, revoke_token,
@@ -40,7 +40,53 @@ def api_revoke_token():
     return jsonify({"status": "revoked"})
 
 
-# --- WALL PAGE (HTML) ---
+# # --- WALL PAGE (HTML) ---
+# @bp.get("/wall")
+# def wall():
+#     token = request.args.get("token", "")
+#     token_id = is_token_valid(token)
+#     if token_id is None:
+#         abort(401, "Invalid or revoked token")
+
+#     log_access(
+#         token_id=token_id,
+#         path="/wall",
+#         ip=request.remote_addr,
+#         user_agent=request.headers.get("User-Agent", ""),
+#     )
+
+#     html = """
+#     <!doctype html>
+#     <html>
+#     <head>
+#         <title>NVR Wall</title>
+#         <style>
+#             html, body {
+#                 margin: 0;
+#                 padding: 0;
+#                 height: 100%;
+#                 background: #000;
+#                 overflow: hidden;
+#             }
+#             #video {
+#                 position: fixed;
+#                 top: 50%;
+#                 left: 50%;
+#                 transform: translate(-50%, -50%);
+#                 width: 100vw;
+#                 height: auto;
+#                 max-height: 100vh;
+#                 display: block;
+#             }
+#         </style>
+#     </head>
+#     <body>
+#         <img id="video" src="/stream?token={{ token }}" alt="NVR Wall">
+#         <!-- Press F11 in the browser for real fullscreen -->
+#     </body>
+#     </html>
+#     """
+#     return render_template_string(html, token=token)
 @bp.get("/wall")
 def wall():
     token = request.args.get("token", "")
@@ -48,41 +94,60 @@ def wall():
     if token_id is None:
         abort(401, "Invalid or revoked token")
 
-    log_access(
-        token_id=token_id,
-        path="/wall",
-        ip=request.remote_addr,
-        user_agent=request.headers.get("User-Agent", ""),
-    )
+    log_access(token_id, "/wall", request.remote_addr, request.headers.get("User-Agent"))
 
     html = """
     <!doctype html>
     <html>
     <head>
-        <title>NVR Wall</title>
+        <title>NVR Wall (HLS)</title>
+        <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
         <style>
-            html, body {
+            body {
                 margin: 0;
-                padding: 0;
-                height: 100%;
-                background: #000;
+                background: black;
                 overflow: hidden;
             }
-            #video {
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
+            .grid {
+                display: grid;
                 width: 100vw;
-                height: auto;
-                max-height: 100vh;
-                display: block;
+                height: 100vh;
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: 1fr 1fr;
+            }
+            video {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
             }
         </style>
     </head>
     <body>
-        <img id="video" src="/stream?token={{ token }}" alt="NVR Wall">
-        <!-- Press F11 in the browser for real fullscreen -->
+        <div class="grid">
+            <video id="v1" autoplay muted></video>
+            <video id="v2" autoplay muted></video>
+            <video id="v3" autoplay muted></video>
+            <video id="v4" autoplay muted></video>
+        </div>
+        <script>
+            function setupVideo(id, url) {
+                var video = document.getElementById(id);
+                if (Hls.isSupported()) {
+                    var hls = new Hls();
+                    hls.loadSource(url);
+                    hls.attachMedia(video);
+                } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+                    video.src = url;
+                }
+            }
+
+            const token = "{{ token }}";
+
+            setupVideo("v1", "/hls/ch1.m3u8?token=" + token);
+            setupVideo("v2", "/hls/ch2.m3u8?token=" + token);
+            setupVideo("v3", "/hls/ch3.m3u8?token=" + token);
+            setupVideo("v4", "/hls/ch4.m3u8?token=" + token);
+        </script>
     </body>
     </html>
     """
@@ -124,3 +189,20 @@ def stream():
         generate(),
         mimetype="multipart/x-mixed-replace; boundary=frame",
     )
+
+@bp.get("/hls/<path:filename>")
+def serve_hls(filename):
+    token = request.args.get("token", "")
+    token_id = is_token_valid(token)
+    if token_id is None:
+        abort(401, "Invalid or revoked token")
+
+    log_access(
+        token_id=token_id,
+        path=f"/hls/{filename}",
+        ip=request.remote_addr,
+        user_agent=request.headers.get("User-Agent", ""),
+    )
+
+    hls_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "hls")
+    return send_from_directory(hls_dir, filename)
