@@ -7,9 +7,9 @@ from .tokens import (
     is_token_valid, log_access
 )
 # from .nvr import get_grid_frame
-import os
-import cv2
-import time
+# import os
+# import cv2
+# import time
 
 bp = Blueprint("routes", __name__)
 
@@ -73,6 +73,7 @@ def wall():
             video {
                 width: 100vw;
                 height: 100vh;
+                aspect-ratio: 16/9;
                 object-fit: contain;   /* show full frame, keep aspect, letterbox if needed */
                 background: #000;      /* black bars around image */
                 display: block;
