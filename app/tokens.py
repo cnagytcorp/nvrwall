@@ -3,6 +3,8 @@ import sqlite3
 import secrets
 import datetime
 from flask import g, current_app
+from werkzeug.security import generate_password_hash, check_password_hash
+
 
 # Path to SQLite DB (adjust if yours is different)
 DB_PATH = os.path.join(
@@ -77,14 +79,88 @@ def init_db():
         )
         """
     )
+    
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        )
+        """
+    )
 
     db.commit()
     db.close()
 
 
+# ---- Admin password operations ------------------------------------------------
+def set_admin_password(password: str) -> None:
+    """
+    Set or update the admin password (used for /admin/* web UI).
+    This is intended to be called from a CLI script.
+    """
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    db = sqlite3.connect(DB_PATH, timeout=10, check_same_thread=False)
+    db.row_factory = sqlite3.Row
+    cur = db.cursor()
+
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        )
+        """
+    )
+
+    pwd_hash = generate_password_hash(password)
+
+    # Upsert into settings
+    cur.execute(
+        """
+        INSERT INTO settings (key, value) VALUES ('admin_password_hash', ?)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value
+        """,
+        (pwd_hash,),
+    )
+
+    db.commit()
+    db.close()
+
+
+# Retrieve stored admin password hash
+def get_admin_password_hash():
+    """
+    Return stored admin password hash or None if not set.
+    """
+    db = get_db()
+    db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        )
+        """
+    )
+    row = db.execute(
+        "SELECT value FROM settings WHERE key = 'admin_password_hash'"
+    ).fetchone()
+    return row["value"] if row else None
+
+
+# Verify admin password
+def verify_admin_password(password: str) -> bool:
+    """
+    Check if the given password matches the stored admin password hash.
+    """
+    stored = get_admin_password_hash()
+    if not stored:
+        # No password set -> deny
+        return False
+    return check_password_hash(stored, password)
+
+
 # ---- Token operations --------------------------------------------------------
-
-
 def create_token(description: str, days_valid: int | None = None) -> str:
     """
     Create a new token.
