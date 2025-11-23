@@ -62,33 +62,36 @@ def wall():
             html, body {
                 margin: 0;
                 padding: 0;
+                width: 100%;
                 height: 100%;
                 background: #000;
                 overflow: hidden;
             }
-            .grid {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                grid-template-rows: 1fr 1fr;
+            .row {
+                display: flex;
                 width: 100vw;
-                height: 100vh;
+                height: 50vh;      /* two rows: each is half screen height */
             }
-            .grid video {
-                width: 100%;
+            .row video {
+                flex: 1 1 50%;      /* each video half the row width */
                 height: 100%;
-                object-fit: fill;   /* stretch each feed to fill its 16:9 cell */
+                width: 50%;
+                object-fit: fill;   /* stretch to fill its quadrant */
                 background: #000;
                 display: block;
             }
         </style>
     </head>
     <body>
-        <div class="grid">
+        <div class="row">
             <video id="v1" autoplay muted></video>
             <video id="v2" autoplay muted></video>
+        </div>
+        <div class="row">
             <video id="v3" autoplay muted></video>
             <video id="v4" autoplay muted></video>
         </div>
+
         <script>
             function setupVideo(id, url) {
                 const video = document.getElementById(id);
@@ -114,6 +117,7 @@ def wall():
     </html>
     """
     return render_template_string(html, token=token)
+
 
 
 # --- SERVE HLS FILES ---
