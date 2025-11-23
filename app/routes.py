@@ -1,13 +1,16 @@
 from flask import (
     Blueprint, request, abort, jsonify,
-    render_template_string, Response, send_from_directory
-)
-from .tokens import (
-    create_token, revoke_token,
-    is_token_valid, log_access
+    render_template_string, Response, send_from_directory, current_app
 )
 import os
-from flask import current_app
+
+from .tokens import (
+    is_token_valid,
+    log_access,
+    list_tokens,
+    revoke_token,
+    create_token,
+)
 
 bp = Blueprint("routes", __name__)
 
@@ -138,7 +141,7 @@ def serve_hls(filename):
 
     - For .m3u8: check token + log access (hits DB)
     - For .ts: no token/DB check (avoid DB lock)
-    - Disable caching to avoid old segments being reused
+    - Disable caching to avoid stale HLS
     """
     # Only validate/log for playlists
     if filename.endswith(".m3u8"):
@@ -154,17 +157,111 @@ def serve_hls(filename):
             user_agent=request.headers.get("User-Agent", ""),
         )
 
-    # Build full path and check existence
     full_path = os.path.join(HLS_DIR, filename)
     if not os.path.isfile(full_path):
         abort(404)
 
     resp = send_from_directory(HLS_DIR, filename)
 
-    # Disable caching so browser doesn't reuse stale HLS files
+    # Stop browser from caching HLS files aggressively
     resp.cache_control.no_store = True
     resp.cache_control.must_revalidate = True
     resp.expires = 0
 
     return resp
 
+
+# --- ADMIN: LIST TOKENS ---
+@bp.get("/admin/tokens")
+def admin_tokens():
+    """
+    Very simple HTML page listing all tokens and basic info.
+    No auth yet – intended for LAN use. Lock down with nginx or VPN if needed.
+    """
+    rows = list_tokens()
+
+    html = """
+    <!doctype html>
+    <html>
+    <head>
+        <title>NVR Tokens Admin</title>
+        <style>
+            body { font-family: system-ui, sans-serif; background:#0f172a; color:#e5e7eb; padding:20px; }
+            table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+            th, td { border: 1px solid #374151; padding: 6px 8px; font-size: 13px; }
+            th { background:#111827; text-align:left; }
+            tr:nth-child(even) { background:#111827; }
+            tr:nth-child(odd) { background:#020617; }
+            .badge { padding: 2px 6px; border-radius: 999px; font-size: 11px; }
+            .ok { background:#065f46; }
+            .revoked { background:#7f1d1d; }
+            .expired { background:#92400e; }
+            a { color:#60a5fa; text-decoration:none; }
+            a:hover { text-decoration:underline; }
+            .token { font-family: monospace; font-size: 11px; }
+        </style>
+    </head>
+    <body>
+        <h1>Token Admin</h1>
+        <p>Tokens used to access the NVR wall. Revoke tokens you no longer want to be valid.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Description</th>
+                    <th>Token</th>
+                    <th>Created</th>
+                    <th>Expires</th>
+                    <th>Last Used</th>
+                    <th>Status</th>
+                    <th>Revoke</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for t in tokens %}
+                <tr>
+                    <td>{{ t.id }}</td>
+                    <td>{{ t.description or '' }}</td>
+                    <td class="token">{{ t.token }}</td>
+                    <td>{{ t.created_at }}</td>
+                    <td>{{ t.expires_at or '' }}</td>
+                    <td>{{ t.last_access_at or t.last_used_at or '' }}</td>
+                    <td>
+                        {% if t.revoked %}
+                            <span class="badge revoked">revoked</span>
+                        {% elif t.is_expired %}
+                            <span class="badge expired">expired</span>
+                        {% else %}
+                            <span class="badge ok">active</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if not t.revoked %}
+                            <a href="/admin/tokens/revoke?id={{ t.id }}">Revoke</a>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </body>
+    </html>
+    """
+    return render_template_string(html, tokens=rows)
+
+
+# --- ADMIN: REVOKE TOKEN ---
+@bp.get("/admin/tokens/revoke")
+def admin_revoke_token():
+    tid = request.args.get("id")
+    if not tid:
+        abort(400, "id is required")
+    try:
+        token_id = int(tid)
+    except ValueError:
+        abort(400, "invalid id")
+
+    revoke_token(token_id)
+    # redirect back to list
+    from flask import redirect, url_for
+    return redirect(url_for("routes.admin_tokens"))
