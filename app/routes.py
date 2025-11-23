@@ -70,6 +70,8 @@ def admin_login():
         <div class="box">
             <h1>Admin Login</h1>
             <form method="post">
+                <label for="user">Admin username</label>
+                <input id="user" name="user" type="text" required />
                 <label for="password">Admin password</label>
                 <input id="password" name="password" type="password" required />
                 {% if error %}
