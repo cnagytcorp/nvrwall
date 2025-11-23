@@ -59,31 +59,19 @@ def wall():
         <title>NVR Wall - CH1</title>
         <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
         <style>
-            body, html {
+            html, body {
                 margin: 0;
                 padding: 0;
-                width: 100%;
                 height: 100%;
                 background: #000;
                 overflow: hidden;
             }
-            /* 16:9 container */
-            .wrapper {
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                width: 100vw;
-                height: calc(100vw * 9 / 16);
-                max-height: 100vh;
-                max-width: calc(100vh * 16 / 9);
-                transform: translate(-50%, -50%);
-                background: #000;
-            }
-            /* actual camera video inside */
             video {
-                width: 100%;
-                height: 100%;
-                object-fit: contain;
+                width: 100vw;
+                height: 100vh;
+                object-fit: fill;   /* <-- stretch to fill 16:9 screen */
+                display: block;
+                background: #000;
             }
         </style>
     </head>
