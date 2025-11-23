@@ -21,9 +21,218 @@ bp = Blueprint("routes", __name__)
 HLS_DIR = "/home/enjoy/nvr/hls"
 
 # --- HEALTH CHECK ---
+# app/routes.py
+
+from flask import (
+    Blueprint, request, abort, jsonify,
+    render_template_string, Response, send_from_directory,
+    current_app, session, redirect, url_for
+)
+
+bp = Blueprint("routes", __name__)
+
 @bp.get("/")
 def index():
-    return "NVR Wall backend (routes + tokens + NVR active)", 200
+    # Try to get client IP (works behind nginx with X-Forwarded-For)
+    ip = request.headers.get("X-Forwarded-For", request.remote_addr)
+
+    html = """
+    <!doctype html>
+    <html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>Secure Monitoring Portal</title>
+        <style>
+            :root {
+                --bg: #020617;
+                --panel: #020617;
+                --accent: #f97316;
+                --accent2: #22c55e;
+                --border: #1f2937;
+                --text: #e5e7eb;
+                --muted: #9ca3af;
+                --danger: #ef4444;
+            }
+            * { box-sizing: border-box; }
+            body {
+                margin: 0;
+                font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+                background: radial-gradient(circle at top, #111827 0, #020617 55%);
+                color: var(--text);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 24px;
+            }
+            .wrap {
+                max-width: 900px;
+                width: 100%;
+                background: var(--panel);
+                border-radius: 16px;
+                border: 1px solid var(--border);
+                box-shadow: 0 24px 60px rgba(0,0,0,0.7);
+                padding: 24px 28px 20px;
+            }
+            header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-bottom: 1px solid var(--border);
+                padding-bottom: 12px;
+                margin-bottom: 16px;
+            }
+            .title-block h1 {
+                font-size: 22px;
+                margin: 0 0 4px;
+                letter-spacing: 0.05em;
+                text-transform: uppercase;
+            }
+            .title-block span {
+                font-size: 12px;
+                color: var(--muted);
+            }
+            .badge {
+                padding: 4px 10px;
+                border-radius: 999px;
+                font-size: 11px;
+                font-weight: 600;
+                text-transform: uppercase;
+            }
+            .badge-critical {
+                background: rgba(248, 113, 113, 0.12);
+                color: var(--danger);
+                border: 1px solid rgba(248, 113, 113, 0.45);
+            }
+            .section-title {
+                font-size: 14px;
+                font-weight: 600;
+                letter-spacing: .08em;
+                text-transform: uppercase;
+                color: var(--muted);
+                margin-bottom: 8px;
+            }
+            .warning-box {
+                border-radius: 12px;
+                border: 1px solid rgba(248, 250, 252, 0.08);
+                background: radial-gradient(circle at top left, rgba(248, 113, 113, 0.1), transparent 55%);
+                padding: 16px 18px;
+                margin-bottom: 18px;
+            }
+            .warning-box h2 {
+                margin: 0 0 8px;
+                font-size: 16px;
+                color: var(--danger);
+                text-transform: uppercase;
+                letter-spacing: 0.12em;
+            }
+            .warning-box p {
+                margin: 4px 0;
+                font-size: 13px;
+                line-height: 1.5;
+            }
+            .list {
+                margin: 10px 0 0;
+                padding-left: 18px;
+                font-size: 13px;
+                color: var(--muted);
+            }
+            .meta-row {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 14px;
+                font-size: 12px;
+                margin-top: 12px;
+                color: var(--muted);
+            }
+            .meta-pill {
+                padding: 4px 10px;
+                border-radius: 999px;
+                border: 1px solid var(--border);
+                background: #020617;
+            }
+            .meta-label { font-weight: 600; text-transform: uppercase; letter-spacing: .08em; font-size: 11px; }
+            .meta-value { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+            footer {
+                margin-top: 14px;
+                border-top: 1px solid var(--border);
+                padding-top: 10px;
+                font-size: 11px;
+                color: var(--muted);
+                display: flex;
+                justify-content: space-between;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .timestamp { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+        </style>
+    </head>
+    <body>
+        <div class="wrap">
+            <header>
+                <div class="title-block">
+                    <h1>Secure Monitoring Portal</h1>
+                    <span>Unauthorized access is strictly prohibited</span>
+                </div>
+                <span class="badge badge-critical">Access Logged &amp; Monitored</span>
+            </header>
+
+            <div class="section-title">System Notice</div>
+            <div class="warning-box">
+                <h2>Restricted Private System</h2>
+                <p>
+                    This system is part of a private electronic surveillance and cyber security environment.
+                    All connections, including IP address, time of access, and requested resources,
+                    are automatically logged and may be reviewed.
+                </p>
+                <p>
+                    Unauthorized use, probing, or access attempts may result in suspension of access,
+                    network blocking, and, where appropriate, reporting to law enforcement or other
+                    competent authorities.
+                </p>
+                <ul class="list">
+                    <li>If you reached this page unintentionally, you may simply close this browser tab.</li>
+                    <li>If you were not explicitly granted access by the system owner, do <strong>not</strong> proceed further.</li>
+                </ul>
+            </div>
+
+            <div class="section-title">Connection Details</div>
+            <div class="meta-row">
+                <div class="meta-pill">
+                    <div class="meta-label">Your IP</div>
+                    <div class="meta-value">{{ ip }}</div>
+                </div>
+                <div class="meta-pill">
+                    <div class="meta-label">Status</div>
+                    <div class="meta-value">Session logged</div>
+                </div>
+                <div class="meta-pill">
+                    <div class="meta-label">Portal</div>
+                    <div class="meta-value">NVR wall backend</div>
+                </div>
+            </div>
+
+            <footer>
+                <div>Authorized users may navigate directly to their assigned resource URLs.</div>
+                <div class="timestamp">Server time: <span id="srvtime"></span></div>
+            </footer>
+        </div>
+
+        <script>
+            // Just show current time for extra "official" vibe
+            function updateTime() {
+                const el = document.getElementById('srvtime');
+                const now = new Date();
+                el.textContent = now.toISOString();
+            }
+            updateTime();
+            setInterval(updateTime, 1000);
+        </script>
+    </body>
+    </html>
+    """
+    return render_template_string(html, ip=ip)
 
 
 # --- watchdog ---
