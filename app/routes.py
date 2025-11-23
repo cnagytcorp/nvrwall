@@ -71,12 +71,14 @@ def wall():
                 overflow: hidden;
             }
             video {
-                width: 100vw;
-                height: 100vh;
-                aspect-ratio: 16/9;
-                object-fit: contain;   /* show full frame, keep aspect, letterbox if needed */
-                background: #000;      /* black bars around image */
-                display: block;
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                max-width: 100vw;
+                max-height: 100vh;
+                object-fit: contain;   /* preserve real aspect */
+                background: #000;
             }
         </style>
     </head>
