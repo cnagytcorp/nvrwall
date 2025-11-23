@@ -1,11 +1,6 @@
-"""
-NVR Wall - placeholder
+from app import create_app
 
-We'll later turn this into the full Flask app that:
-- Pulls RTSP from cameras
-- Builds a grid
-- Streams MJPEG
-- Uses per-user URL tokens with logging & revocation
-"""
+app = create_app()
+
 if __name__ == "__main__":
-    print("NVR Wall project skeleton")
+    app.run(host="0.0.0.0", port=5000, debug=True)

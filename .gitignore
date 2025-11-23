@@ -15,3 +15,7 @@ venv/
 Thumbs.db
 .idea/
 .vscode/
+
+# SQLite database
+nvrwall.db
+*.db
