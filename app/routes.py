@@ -88,6 +88,72 @@ def api_revoke_token():
 #     </html>
 #     """
 #     return render_template_string(html, token=token)
+# @bp.get("/wall")
+# def wall():
+#     token = request.args.get("token", "")
+#     token_id = is_token_valid(token)
+#     if token_id is None:
+#         abort(401, "Invalid or revoked token")
+
+#     log_access(token_id, "/wall", request.remote_addr, request.headers.get("User-Agent"))
+
+#     html = """
+#     <!doctype html>
+#     <html>
+#     <head>
+#         <title>NVR Wall (HLS)</title>
+#         <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+#         <style>
+#             body {
+#                 margin: 0;
+#                 background: black;
+#                 overflow: hidden;
+#             }
+#             .grid {
+#                 display: grid;
+#                 width: 100vw;
+#                 height: 100vh;
+#                 grid-template-columns: 1fr 1fr;
+#                 grid-template-rows: 1fr 1fr;
+#             }
+#             video {
+#                 width: 100%;
+#                 height: 100%;
+#                 object-fit: cover;
+#             }
+#         </style>
+#     </head>
+#     <body>
+#         <div class="grid">
+#             <video id="v1" autoplay muted></video>
+#             <video id="v2" autoplay muted></video>
+#             <video id="v3" autoplay muted></video>
+#             <video id="v4" autoplay muted></video>
+#         </div>
+#         <script>
+#             function setupVideo(id, url) {
+#                 var video = document.getElementById(id);
+#                 if (Hls.isSupported()) {
+#                     var hls = new Hls();
+#                     hls.loadSource(url);
+#                     hls.attachMedia(video);
+#                 } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+#                     video.src = url;
+#                 }
+#             }
+
+#             const token = "{{ token }}";
+
+#             setupVideo("v1", "/hls/ch1.m3u8?token=" + token);
+#             setupVideo("v2", "/hls/ch2.m3u8?token=" + token);
+#             setupVideo("v3", "/hls/ch3.m3u8?token=" + token);
+#             setupVideo("v4", "/hls/ch4.m3u8?token=" + token);
+#         </script>
+#     </body>
+#     </html>
+#     """
+#     return render_template_string(html, token=token)
+
 @bp.get("/wall")
 def wall():
     token = request.args.get("token", "")
@@ -95,65 +161,56 @@ def wall():
     if token_id is None:
         abort(401, "Invalid or revoked token")
 
-    log_access(token_id, "/wall", request.remote_addr, request.headers.get("User-Agent"))
+    log_access(
+        token_id=token_id,
+        path="/wall",
+        ip=request.remote_addr,
+        user_agent=request.headers.get("User-Agent", ""),
+    )
 
     html = """
     <!doctype html>
     <html>
     <head>
-        <title>NVR Wall (HLS)</title>
+        <title>NVR Wall - CH1</title>
         <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
         <style>
-            body {
+            html, body {
                 margin: 0;
-                background: black;
+                padding: 0;
+                height: 100%;
+                background: #000;
                 overflow: hidden;
             }
-            .grid {
-                display: grid;
+            video {
                 width: 100vw;
                 height: 100vh;
-                grid-template-columns: 1fr 1fr;
-                grid-template-rows: 1fr 1fr;
-            }
-            video {
-                width: 100%;
-                height: 100%;
                 object-fit: cover;
+                display: block;
             }
         </style>
     </head>
     <body>
-        <div class="grid">
-            <video id="v1" autoplay muted></video>
-            <video id="v2" autoplay muted></video>
-            <video id="v3" autoplay muted></video>
-            <video id="v4" autoplay muted></video>
-        </div>
+        <video id="cam1" autoplay muted></video>
         <script>
-            function setupVideo(id, url) {
-                var video = document.getElementById(id);
-                if (Hls.isSupported()) {
-                    var hls = new Hls();
-                    hls.loadSource(url);
-                    hls.attachMedia(video);
-                } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-                    video.src = url;
-                }
-            }
-
             const token = "{{ token }}";
+            const src = "/hls/ch1.m3u8?token=" + encodeURIComponent(token);
+            const video = document.getElementById("cam1");
 
-            setupVideo("v1", "/hls/ch1.m3u8?token=" + token);
-            setupVideo("v2", "/hls/ch2.m3u8?token=" + token);
-            setupVideo("v3", "/hls/ch3.m3u8?token=" + token);
-            setupVideo("v4", "/hls/ch4.m3u8?token=" + token);
+            if (Hls.isSupported()) {
+                const hls = new Hls();
+                hls.loadSource(src);
+                hls.attachMedia(video);
+            } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+                video.src = src;
+            } else {
+                video.outerHTML = "<p style='color:white'>HLS not supported in this browser.</p>";
+            }
         </script>
     </body>
     </html>
     """
     return render_template_string(html, token=token)
-
 
 # --- MJPEG STREAM ---
 @bp.get("/stream")
