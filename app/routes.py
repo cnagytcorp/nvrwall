@@ -11,6 +11,7 @@ from flask import current_app
 
 bp = Blueprint("routes", __name__)
 
+HLS_DIR = current_app.config.get("HLS_DIR", "hls")
 
 # --- HEALTH CHECK ---
 @bp.get("/")
@@ -125,10 +126,16 @@ def wall():
 # --- SERVE HLS FILES ---
 @bp.get("/hls/<path:filename>")
 def serve_hls(filename):
-    token = request.args.get("token", "")
+    """
+    Serve HLS playlists and segments.
 
-    # Only hit the database for playlists, NOT for each .ts segment
+    - For .m3u8: check token + log access (hits DB)
+    - For .ts: no token/DB check (avoid DB lock)
+    - Disable caching to avoid old segments being reused
+    """
+    # Only validate/log for playlists
     if filename.endswith(".m3u8"):
+        token = request.args.get("token", "")
         token_id = is_token_valid(token)
         if token_id is None:
             abort(401, "Invalid or revoked token")
@@ -140,16 +147,17 @@ def serve_hls(filename):
             user_agent=request.headers.get("User-Agent", ""),
         )
 
-    # serve static file
-    full_path = os.path.join(current_app.config["HLS_ROOT"], filename)
+    # Build full path and check existence
+    full_path = os.path.join(HLS_DIR, filename)
     if not os.path.isfile(full_path):
         abort(404)
 
-    resp = send_from_directory(current_app.config["HLS_ROOT"], filename)
+    resp = send_from_directory(HLS_DIR, filename)
 
-    # disable caching (see section 2)
+    # Disable caching so browser doesn't reuse stale HLS files
     resp.cache_control.no_store = True
     resp.cache_control.must_revalidate = True
     resp.expires = 0
 
     return resp
+
