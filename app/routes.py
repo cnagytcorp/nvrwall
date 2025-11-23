@@ -205,5 +205,6 @@ def serve_hls(filename):
         user_agent=request.headers.get("User-Agent", ""),
     )
 
-    hls_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "hls")
+    # IMPORTANT: match ffmpeg output folder
+    hls_dir = "/home/enjoy/nvr/hls"
     return send_from_directory(hls_dir, filename)
