@@ -56,7 +56,7 @@ def wall():
     <!doctype html>
     <html>
     <head>
-        <title>NVR Wall - CH1</title>
+        <title>NVR Wall - 4 Cameras</title>
         <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
         <style>
             html, body {
@@ -66,33 +66,49 @@ def wall():
                 background: #000;
                 overflow: hidden;
             }
-            video {
+            .grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: 1fr 1fr;
                 width: 100vw;
                 height: 100vh;
-                object-fit: fill;   /* <-- stretch to fill 16:9 screen */
-                display: block;
+            }
+            .grid video {
+                width: 100%;
+                height: 100%;
+                object-fit: fill;   /* stretch each feed to fill its 16:9 cell */
                 background: #000;
+                display: block;
             }
         </style>
     </head>
     <body>
-        <div class="wrapper">
-            <video id="cam1" autoplay muted></video>
+        <div class="grid">
+            <video id="v1" autoplay muted></video>
+            <video id="v2" autoplay muted></video>
+            <video id="v3" autoplay muted></video>
+            <video id="v4" autoplay muted></video>
         </div>
         <script>
-            const token = "{{ token }}";
-            const src = "/hls/ch1.m3u8?token=" + encodeURIComponent(token);
-            const video = document.getElementById("cam1");
-
-            if (Hls.isSupported()) {
-                const hls = new Hls();
-                hls.loadSource(src);
-                hls.attachMedia(video);
-            } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-                video.src = src;
-            } else {
-                video.outerHTML = "<p style='color:white'>HLS not supported in this browser.</p>";
+            function setupVideo(id, url) {
+                const video = document.getElementById(id);
+                if (Hls.isSupported()) {
+                    const hls = new Hls();
+                    hls.loadSource(url);
+                    hls.attachMedia(video);
+                } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+                    video.src = url;
+                } else {
+                    video.outerHTML = "<p style='color:white'>HLS not supported.</p>";
+                }
             }
+
+            const token = "{{ token }}";
+
+            setupVideo("v1", "/hls/ch1.m3u8?token=" + encodeURIComponent(token));
+            setupVideo("v2", "/hls/ch2.m3u8?token=" + encodeURIComponent(token));
+            setupVideo("v3", "/hls/ch3.m3u8?token=" + encodeURIComponent(token));
+            setupVideo("v4", "/hls/ch4.m3u8?token=" + encodeURIComponent(token));
         </script>
     </body>
     </html>
