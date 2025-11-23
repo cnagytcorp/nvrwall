@@ -11,7 +11,8 @@ from flask import current_app
 
 bp = Blueprint("routes", __name__)
 
-HLS_DIR = current_app.config.get("HLS_DIR", "hls")
+# Absolute path to your HLS folder
+HLS_DIR = "/home/enjoy/nvr/hls"
 
 # --- HEALTH CHECK ---
 @bp.get("/")
