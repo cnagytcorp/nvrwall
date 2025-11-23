@@ -185,7 +185,8 @@ def wall():
             video {
                 width: 100vw;
                 height: 100vh;
-                object-fit: cover;
+                object-fit: contain;   /* show full frame, keep aspect, letterbox if needed */
+                background: #000;      /* black bars around image */
                 display: block;
             }
         </style>
