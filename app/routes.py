@@ -48,7 +48,7 @@ def admin_login():
             next_url = request.args.get("next") or url_for("routes.admin_tokens")
             return redirect(next_url)
         else:
-            error = "Invalid admin password"
+            error = "Invalid login credentials."
 
     html = """
     <!doctype html>
