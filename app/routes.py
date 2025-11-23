@@ -107,7 +107,9 @@ def stream():
     def generate():
         while True:
             frame = get_grid_frame()
-            ret, jpeg = cv2.imencode(".jpg", frame)
+            encode_params = [int(cv2.IMWRITE_JPEG_QUALITY), 80]  # 0–100, default ~95
+            ret, jpeg = cv2.imencode(".jpg", frame, encode_params)
+
             if not ret:
                 continue
 
