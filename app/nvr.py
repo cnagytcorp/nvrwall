@@ -139,4 +139,19 @@ def get_grid_frame() -> np.ndarray:
     top = np.hstack((frames[0], frames[1]))
     bottom = np.hstack((frames[2], frames[3]))
     grid = np.vstack((top, bottom))
+    top = np.hstack((frames[0], frames[1]))
+    bottom = np.hstack((frames[2], frames[3]))
+    grid = np.vstack((top, bottom))
+
+    # Downscale if larger than 1920x1080
+    max_w, max_h = 1920, 1080
+    h, w = grid.shape[:2]
+    scale = min(max_w / w, max_h / h, 1.0)
+    if scale < 1.0:
+        grid = cv2.resize(
+            grid,
+            (int(w * scale), int(h * scale)),
+            interpolation=cv2.INTER_AREA,
+        )
+
     return grid
