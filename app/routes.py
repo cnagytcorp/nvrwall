@@ -291,6 +291,16 @@ def admin_tokens():
             button { padding:6px 12px; border:none; border-radius:6px; background:#2563eb; color:white; font-size:13px; cursor:pointer; }
             button:hover { background:#1d4ed8; }
             .new-token-box { margin-top:10px; padding:8px; background:#022c22; border-radius:6px; font-family:monospace; font-size:12px; }
+            button.copy-btn {
+                padding:4px 8px;
+                border:none;
+                border-radius:6px;
+                background:#059669;
+                color:white;
+                font-size:12px;
+                cursor:pointer;
+            }
+            button.copy-btn:hover { background:#047857; }
         </style>
     </head>
     <body>
@@ -336,6 +346,7 @@ def admin_tokens():
                     <th>Last Used</th>
                     <th>Status</th>
                     <th>Revoke</th>
+                    <th>Share</th>
                 </tr>
             </thead>
             <tbody>
@@ -361,11 +372,43 @@ def admin_tokens():
                             <a href="/admin/tokens/revoke?id={{ t.id }}">Revoke</a>
                         {% endif %}
                     </td>
+                    <td>
+                        <button type="button" onclick="copyUrl('{{ t.token }}')">
+                            Copy URL
+                        </button>
+                    </td>
                 </tr>
             {% endfor %}
             </tbody>
         </table>
     </body>
+    <script>
+        function copyUrl(token) {
+            const url = window.location.origin + '/wall?token=' + token;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(() => {
+                    // Small, non-intrusive feedback
+                    console.log('Copied:', url);
+                }).catch(err => {
+                    console.error('Clipboard error:', err);
+                    alert('Could not copy URL');
+                });
+            } else {
+                // Fallback for very old browsers
+                const temp = document.createElement('input');
+                temp.value = url;
+                document.body.appendChild(temp);
+                temp.select();
+                try {
+                    document.execCommand('copy');
+                    console.log('Copied (fallback):', url);
+                } catch (e) {
+                    alert('Could not copy URL');
+                }
+                document.body.removeChild(temp);
+            }
+        }
+    </script>
     </html>
     """
     return render_template_string(html, tokens=rows, new_token=new_token_value)
