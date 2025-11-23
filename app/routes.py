@@ -6,6 +6,8 @@ from .tokens import (
     create_token, revoke_token,
     is_token_valid, log_access
 )
+import os
+from flask import current_app
 
 bp = Blueprint("routes", __name__)
 
@@ -123,11 +125,10 @@ def wall():
 # --- SERVE HLS FILES ---
 @bp.get("/hls/<path:filename>")
 def serve_hls(filename):
-    hls_dir = "/home/enjoy/nvr/hls"  # where ffmpeg writes ch1.m3u8 and .ts segments
+    token = request.args.get("token", "")
 
-    # If this is a playlist, enforce token
+    # Only hit the database for playlists, NOT for each .ts segment
     if filename.endswith(".m3u8"):
-        token = request.args.get("token", "")
         token_id = is_token_valid(token)
         if token_id is None:
             abort(401, "Invalid or revoked token")
@@ -139,7 +140,16 @@ def serve_hls(filename):
             user_agent=request.headers.get("User-Agent", ""),
         )
 
-        return send_from_directory(hls_dir, filename)
+    # serve static file
+    full_path = os.path.join(current_app.config["HLS_ROOT"], filename)
+    if not os.path.isfile(full_path):
+        abort(404)
 
-    # If this is a .ts segment, DO NOT require token (browser doesn't send it)
-    return send_from_directory(hls_dir, filename)
+    resp = send_from_directory(current_app.config["HLS_ROOT"], filename)
+
+    # disable caching (see section 2)
+    resp.cache_control.no_store = True
+    resp.cache_control.must_revalidate = True
+    resp.expires = 0
+
+    return resp
