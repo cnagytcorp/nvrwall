@@ -33,7 +33,6 @@ bp = Blueprint("routes", __name__)
 
 @bp.get("/")
 def index():
-    # Try to get client IP (works behind nginx with X-Forwarded-For)
     ip = request.headers.get("X-Forwarded-For", request.remote_addr)
 
     html = """
@@ -88,10 +87,6 @@ def index():
                 letter-spacing: 0.05em;
                 text-transform: uppercase;
             }
-            .title-block span {
-                font-size: 12px;
-                color: var(--muted);
-            }
             .badge {
                 padding: 4px 10px;
                 border-radius: 999px;
@@ -103,14 +98,6 @@ def index():
                 background: rgba(248, 113, 113, 0.12);
                 color: var(--danger);
                 border: 1px solid rgba(248, 113, 113, 0.45);
-            }
-            .section-title {
-                font-size: 14px;
-                font-weight: 600;
-                letter-spacing: .08em;
-                text-transform: uppercase;
-                color: var(--muted);
-                margin-bottom: 8px;
             }
             .warning-box {
                 border-radius: 12px;
@@ -126,46 +113,42 @@ def index():
                 text-transform: uppercase;
                 letter-spacing: 0.12em;
             }
-            .warning-box p {
-                margin: 4px 0;
-                font-size: 13px;
-                line-height: 1.5;
-            }
-            .list {
-                margin: 10px 0 0;
-                padding-left: 18px;
-                font-size: 13px;
-                color: var(--muted);
-            }
-            .meta-row {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 14px;
-                font-size: 12px;
-                margin-top: 12px;
-                color: var(--muted);
-            }
-            .meta-pill {
-                padding: 4px 10px;
-                border-radius: 999px;
-                border: 1px solid var(--border);
-                background: #020617;
-            }
-            .meta-label { font-weight: 600; text-transform: uppercase; letter-spacing: .08em; font-size: 11px; }
-            .meta-value { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-
-            footer {
+            .button-row {
                 margin-top: 14px;
-                border-top: 1px solid var(--border);
-                padding-top: 10px;
-                font-size: 11px;
-                color: var(--muted);
                 display: flex;
-                justify-content: space-between;
-                flex-wrap: wrap;
-                gap: 8px;
+                gap: 10px;
             }
-            .timestamp { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+            button {
+                padding: 8px 16px;
+                border: none;
+                border-radius: 6px;
+                font-size: 13px;
+                cursor: pointer;
+                transition: 0.2s;
+            }
+            .btn-understand {
+                background: var(--accent2);
+                color: black;
+                font-weight: 600;
+            }
+            .btn-understand:hover {
+                filter: brightness(1.15);
+            }
+            .btn-leave {
+                background: var(--danger);
+                color: white;
+                font-weight: 600;
+            }
+            .btn-leave:hover {
+                filter: brightness(1.2);
+            }
+            #acknowledged-box {
+                display: none;
+                margin-top: 20px;
+                font-size: 14px;
+                color: var(--muted);
+                text-align: center;
+            }
         </style>
     </head>
     <body>
@@ -175,63 +158,49 @@ def index():
                     <h1>Secure Monitoring Portal</h1>
                     <span>Unauthorized access is strictly prohibited</span>
                 </div>
-                <span class="badge badge-critical">Access Logged &amp; Monitored</span>
+                <span class="badge badge-critical">Access Logged</span>
             </header>
 
-            <div class="section-title">System Notice</div>
-            <div class="warning-box">
-                <h2>Restricted Private System</h2>
-                <p>
-                    This system is part of a private electronic surveillance and cyber security environment.
-                    All connections, including IP address, time of access, and requested resources,
-                    are automatically logged and may be reviewed.
-                </p>
-                <p>
-                    Unauthorized use, probing, or access attempts may result in suspension of access,
-                    network blocking, and, where appropriate, reporting to law enforcement or other
-                    competent authorities.
-                </p>
-                <ul class="list">
-                    <li>If you reached this page unintentionally, you may simply close this browser tab.</li>
-                    <li>If you were not explicitly granted access by the system owner, do <strong>not</strong> proceed further.</li>
-                </ul>
-            </div>
+            <div id="warning-section">
+                <div class="warning-box">
+                    <h2>Restricted Private System</h2>
+                    <p>
+                        This system is part of a private electronic surveillance and cyber security environment.
+                        All connections, including IP address, time of access, and requested resources,
+                        are automatically logged and reviewed.
+                    </p>
+                    <p>
+                        Unauthorized use may result in access termination, blacklisting, and reporting
+                        to the appropriate authorities.
+                    </p>
 
-            <div class="section-title">Connection Details</div>
-            <div class="meta-row">
-                <div class="meta-pill">
-                    <div class="meta-label">Your IP</div>
-                    <div class="meta-value">{{ ip }}</div>
-                </div>
-                <div class="meta-pill">
-                    <div class="meta-label">Status</div>
-                    <div class="meta-value">Session logged</div>
-                </div>
-                <div class="meta-pill">
-                    <div class="meta-label">Portal</div>
-                    <div class="meta-value">NVR wall backend</div>
+                    <div class="button-row">
+                        <button class="btn-understand" onclick="acknowledge()">I Understand</button>
+                        <button class="btn-leave" onclick="leave()">Leave</button>
+                    </div>
                 </div>
             </div>
 
-            <footer>
-                <div>Authorized users may navigate directly to their assigned resource URLs.</div>
-                <div class="timestamp">Server time: <span id="srvtime"></span></div>
-            </footer>
+            <div id="acknowledged-box">
+                ✔ Your access attempt has been logged.<br>
+                If you reached this page by accident, you may now close the tab safely.
+            </div>
+
         </div>
 
         <script>
-            // Just show current time for extra "official" vibe
-            function updateTime() {
-                const el = document.getElementById('srvtime');
-                const now = new Date();
-                el.textContent = now.toISOString();
+            function acknowledge() {
+                document.getElementById("warning-section").style.display = "none";
+                document.getElementById("acknowledged-box").style.display = "block";
             }
-            updateTime();
-            setInterval(updateTime, 1000);
+            function leave() {
+                window.location.href = "https://www.google.com/";
+            }
         </script>
     </body>
     </html>
     """
+
     return render_template_string(html, ip=ip)
 
 
@@ -246,6 +215,7 @@ def is_admin_logged_in() -> bool:
     return session.get("is_admin", False) is True
 
 
+# --- ADMIN LOGIN ---
 @bp.route("/admin/login", methods=["GET", "POST"])
 def admin_login():
     error = None
